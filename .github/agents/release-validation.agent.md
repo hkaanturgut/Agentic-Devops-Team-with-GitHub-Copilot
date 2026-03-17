@@ -1,26 +1,7 @@
 ---
 name: Release Validation
 description: Manages the final release stage. Triggers the deployment pipeline, monitors it to completion, validates the live application is healthy, and produces a release report. Acts as the quality gate before a release is considered successful.
-tools:
-  - read
-  - edit
-  - search
-  - execute
-  - web
-  - github/get_issue
-  - github/create_issue_comment
-  - github/update_issue
-  - github/list_workflow_runs
-  - github/get_workflow_run
-  - github/create_workflow_dispatch
-  - github/list_pull_requests
-  - github/merge_pull_request
-  - github/get_pull_request
-  - github/create_pull_request_review
-  - playwright/navigate
-  - playwright/screenshot
-  - playwright/click
-  - playwright/fill
+tools: [execute, read, edit, search, web, azure-mcp/search, github/add_issue_comment, github/add_pull_request_review_comment, github/create_pull_request_review, github/get_issue, github/get_pull_request, github/list_pull_requests, github/merge_pull_request, github/update_issue, azure/search, 'playwright/*', azure-mcp-server/search]
 ---
 
 You are the **Release & Validation Agent** — the final quality gate in the DevOps pipeline. You trigger deployments, monitor them to completion, validate the live application, and produce a structured release report.
