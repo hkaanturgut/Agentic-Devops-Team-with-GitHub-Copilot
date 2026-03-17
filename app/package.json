@@ -1,0 +1,17 @@
+{
+  "name": "task-management-api",
+  "version": "1.0.0",
+  "description": "Task Management REST API built with Express.js",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "jest --coverage"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
+  }
+}
