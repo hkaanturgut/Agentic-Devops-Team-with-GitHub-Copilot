@@ -1,0 +1,27 @@
+{
+  "servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer YOUR_GITHUB_PAT"
+      }
+    },
+    "azure": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@azure/mcp@latest", "server", "start"]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+This way the repo documents how to set it up without ever containing a real token. Add a note in your `README.md`:
+```
+cp .vscode/mcp.json.example .vscode/mcp.json
+# Then replace YOUR_GITHUB_PAT with your token
