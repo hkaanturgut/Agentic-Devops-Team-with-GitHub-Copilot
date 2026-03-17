@@ -1,0 +1,64 @@
+# Managed by CICD Engineer Agent
+# Builds, tests, and deploys the Node.js Task Management API to the Azure
+# Web App provisioned by Terraform. Includes a post-deploy health check to
+# confirm the app is live and responding.
+name: Deploy App
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    name: Build, Test & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+
+      # Run the full test suite — fail fast if any test breaks.
+      - name: Run tests
+        working-directory: app
+        run: npm test
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          package: ./app
+
+      # Wait for the app to start, then verify the /health endpoint returns 200.
+      - name: Health check
+        run: |
+          sleep 30
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net/health)
+          if [ "$STATUS" != "200" ]; then
+            echo "Health check failed — status $STATUS"
+            exit 1
+          fi
+          echo "Live at https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net"
