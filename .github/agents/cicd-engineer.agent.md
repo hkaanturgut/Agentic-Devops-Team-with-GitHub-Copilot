@@ -216,15 +216,22 @@ jobs:
 
 ## Required GitHub Secrets
 
-Document these in your PR. All values come from the service principal and Terraform outputs:
+The following secrets are **already configured** in GitHub Actions — do NOT ask the human to set them up:
 
-| Secret | Source |
+| Secret | Status |
 |--------|--------|
-| `AZURE_CLIENT_ID` | Service principal (already configured) |
-| `AZURE_CLIENT_SECRET` | Service principal (already configured) |
-| `AZURE_TENANT_ID` | Service principal (already configured) |
-| `AZURE_SUBSCRIPTION_ID` | Service principal (already configured) |
-| `AZURE_WEBAPP_NAME` | Terraform output: `web_app_name` |
+| `AZURE_CLIENT_ID` | ✅ Already configured |
+| `AZURE_CLIENT_SECRET` | ✅ Already configured |
+| `AZURE_TENANT_ID` | ✅ Already configured |
+| `AZURE_SUBSCRIPTION_ID` | ✅ Already configured |
+
+The following secret will be available **after the IAC Engineer's Terraform apply runs**:
+
+| Secret | Status |
+|--------|--------|
+| `AZURE_WEBAPP_NAME` | ⏳ Added after Terraform apply — value comes from `web_app_name` Terraform output |
+
+Do not block your PR on `AZURE_WEBAPP_NAME` — it will be configured after infrastructure is provisioned.
 
 ## Pull Request Format
 
