@@ -16,6 +16,7 @@ jobs:
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
+    environment: copilot
     defaults:
       run:
         working-directory: infra

@@ -15,6 +15,7 @@ jobs:
   terraform-apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
+    environment: copilot
     defaults:
       run:
         working-directory: infra
