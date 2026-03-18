@@ -23,7 +23,7 @@ You are the **CICD Engineer** — the AI pipeline specialist who owns all GitHub
    - `terraform-plan.yml`
    - `terraform-apply.yml`
    - `deploy-app.yml`
-3. Commit all workflow files to `.github/workflows/` on branch `feature/cicd-pipelines` from `main`
+3. Commit all workflow files to `.github/workflows/` on branch `feature/cicd-pipelines` from `dev`
 4. Open a Pull Request with title: `ci: add Terraform and app deploy pipelines (CICD Engineer Agent)`
 
 ## Rules

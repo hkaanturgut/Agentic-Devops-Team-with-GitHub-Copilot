@@ -16,8 +16,8 @@ Create all three workflow files under `.github/workflows/`:
 | File | Trigger | Purpose |
 |------|---------|---------|
 | `terraform-plan.yml` | PR touching `infra/**` | Runs `terraform plan`, posts output as PR comment |
-| `terraform-apply.yml` | Push to `main` touching `infra/**` | Runs `terraform apply -auto-approve` |
-| `deploy-app.yml` | Push to `main` touching `app/**` + `workflow_dispatch` | Build, test, deploy Node.js to Azure |
+| `terraform-apply.yml` | Push to `dev` touching `infra/**` | Runs `terraform apply -auto-approve` |
+| `deploy-app.yml` | Push to `dev` touching `app/**` + `workflow_dispatch` | Build, test, deploy Node.js to Azure |
 
 ## Pre-Configured Secrets
 
@@ -97,7 +97,7 @@ name: Terraform Apply
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
     paths:
       - 'infra/**'
 
@@ -152,7 +152,7 @@ name: Deploy App
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
     paths:
       - 'app/**'
   workflow_dispatch:
@@ -227,7 +227,7 @@ Always use these exact versions — never `@main` or `@latest`:
 
 ## Git Workflow
 
-- Branch: `feature/cicd-pipelines` from `main`
+- Branch: `feature/cicd-pipelines` from `dev`
 - PR title: `ci: add Terraform and app deploy pipelines (CICD Engineer Agent)`
 - PR body must include:
   - Table of all 3 workflows with triggers and purpose

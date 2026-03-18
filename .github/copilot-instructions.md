@@ -17,7 +17,7 @@ This is **"From Copilot to Colleagues"** — an AI DevOps agent team demo. A sta
 - Node.js: use `async/await` only, `process.env.PORT || 3000` for port, always expose `GET /health`
 - Terraform: never modify the `backend "azurerm"` block, never hardcode credentials
 - GitHub Actions: use pinned action versions (`@v4`, `@v3`), use `npm ci` not `npm install`
-- Always branch from `main` — never commit directly to `main`
+- Always branch from `dev` — never commit directly to `dev`
 - Always open a PR — never merge directly
 
 ## GitHub Actions Secrets

@@ -35,7 +35,7 @@ STEP 1: Software Developer
 
 STEP 2: CICD Engineer
   → writes terraform-plan.yml, terraform-apply.yml, deploy-app.yml → opens PR → WAIT for merge
-  (Terraform workflows must exist in main BEFORE the infra PR is opened)
+  (Terraform workflows must exist in dev BEFORE the infra PR is opened)
 
 STEP 3: IAC Engineer
   → writes Terraform under infra/ → opens PR
@@ -70,7 +70,7 @@ Each issue must include:
 [What this agent must produce for the next agent]
 
 ## Branch
-`feature/<type>-<short-name>` from `main`
+`feature/<type>-<short-name>` from `dev`
 
 ## Skill Reference
 `#<skill-name>`
@@ -98,6 +98,6 @@ Next: invoking [next agent]...
 ## Rules
 
 - Never invoke two agents at the same time
-- Always branch from `main` — never commit directly to `main`
+- Always branch from `dev` — never commit directly to `dev`
 - Always open a PR — never merge directly
 - If the request is vague, make reasonable technical assumptions and document them

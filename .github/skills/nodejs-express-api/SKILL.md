@@ -126,7 +126,7 @@ Response (201):
 
 ## Git Workflow
 
-- Branch: `feature/app-task-api` from `main`
+- Branch: `feature/app-task-api` from `dev`
 - PR title: `feat: build Task Management REST API (Software Developer Agent)`
 - PR body must include:
   - Summary of what was built
