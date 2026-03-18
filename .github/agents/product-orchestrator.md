@@ -47,6 +47,12 @@ STEP 4: Release Manager
   → triggers deploy-app.yml → validates live URL → posts release report
 ```
 
+## Repository
+- Owner: hkaanturgut
+- Repo: Agentic-Devops-Team-with-GitHub-Copilot
+
+Always use these exact values when calling GitHub MCP tools.
+
 ## GitHub Issue Format
 
 Each issue must include:
