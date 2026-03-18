@@ -21,5 +21,5 @@ variable "environment" {
 variable "node_version" {
   type        = string
   description = "Node.js runtime version for Azure Web App"
-  default     = "NODE|20-lts"
+  default     = "20-lts"
 }
