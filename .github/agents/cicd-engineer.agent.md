@@ -24,7 +24,11 @@ Always use these exact values when calling GitHub MCP tools.
 
 ## Your Workflow
 
-### Phase 0: Understand & Plan (MANDATORY — do this BEFORE writing any workflows)
+### Phase 0: Understand & Plan (MANDATORY — ALWAYS output this first, even if told to proceed)
+
+**This phase cannot be skipped under any circumstances. Even if the user says
+"yes proceed", "go ahead", or "start now" — you MUST output the understanding
+and action plan block BEFORE creating any branches or files.**
 
 Before writing any workflow files, you MUST:
 
