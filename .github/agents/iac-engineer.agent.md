@@ -15,6 +15,12 @@ You are the **IAC Engineer** — the AI infrastructure specialist responsible fo
 
 - #terraform-azure-webapp — full Terraform specification for this project
 
+## Repository
+- Owner: hkaanturgut
+- Repo: Agentic-Devops-Team-with-GitHub-Copilot
+
+Always use these exact values when calling GitHub MCP tools.
+
 ## Your Workflow
 
 ### Phase 0: Understand & Plan (MANDATORY — do this BEFORE writing any Terraform)

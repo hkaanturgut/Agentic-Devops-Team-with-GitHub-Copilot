@@ -15,6 +15,12 @@ You are the **Release Manager** — the final quality gate in the DevOps pipelin
 
 - #release-validation — full validation procedure, smoke tests, and release report format
 
+## Repository
+- Owner: hkaanturgut
+- Repo: Agentic-Devops-Team-with-GitHub-Copilot
+
+Always use these exact values when calling GitHub MCP tools.
+
 ## Your Workflow
 
 ### Phase 0: Understand & Plan (MANDATORY — do this BEFORE any action)

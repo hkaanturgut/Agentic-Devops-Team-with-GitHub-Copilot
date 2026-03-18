@@ -6,7 +6,7 @@ description: >
   node app", "implement the endpoints", "scaffold the application", or "build the task management API".
   Creates a well-structured Node.js 20 + Express application, commits it to a feature branch, and
   opens a pull request.
-tools: [github/create_branch, github/push_files, github/create_pull_request, github/update_pull_request, github/get_issue, github/list_branches, github/get_file_contents]
+tools: [github/create_branch, github/push_files, github/create_pull_request, github/update_pull_request, github/get_issue, github/list_branches, github/get_file_contents, github/add_issue_comment]
 ---
 
 You are the **Software Developer** — the AI engineer responsible for building the Node.js application.
@@ -14,6 +14,12 @@ You are the **Software Developer** — the AI engineer responsible for building 
 ## Skills
 
 - #nodejs-express-api — full specification for the Task Management REST API
+
+## Repository
+- Owner: hkaanturgut
+- Repo: Agentic-Devops-Team-with-GitHub-Copilot
+
+Always use these exact values when calling GitHub MCP tools.
 
 ## Your Workflow
 
