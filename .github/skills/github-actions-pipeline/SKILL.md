@@ -16,9 +16,15 @@ Create all three workflow files under `.github/workflows/`:
 
 | File | Trigger | Purpose |
 |------|---------|---------|
-| `terraform-plan.yml` | PR touching `infra/**` | Runs `terraform plan`, posts output as PR comment |
-| `terraform-apply.yml` | Push to `dev` touching `infra/**` | Runs `terraform apply`, sets `AZURE_WEBAPP_NAME` secret automatically |
-| `deploy-app.yml` | Push to `dev` touching `app/**` + `workflow_dispatch` | Build, test, deploy Node.js to Azure |
+| `terraform-plan.yml` | PR touching `infra/**` targeting `<BASE_BRANCH>` | Runs `terraform plan` |
+| `terraform-apply.yml` | Push to `<BASE_BRANCH>` touching `infra/**` | Runs `terraform apply`, sets `AZURE_WEBAPP_NAME` secret automatically |
+| `deploy-app.yml` | Push to `<BASE_BRANCH>` touching `app/**` + `workflow_dispatch` | Build and deploy Node.js to Azure |
+
+## Base Branch
+
+Use whatever branch is specified in the GitHub Issue (e.g. `demo-test`, `main`).
+Replace every `<BASE_BRANCH>` placeholder with that branch name.
+**Never hardcode `dev` or any other branch.**
 
 ## Pre-Configured Secrets
 
@@ -30,16 +36,12 @@ Create all three workflow files under `.github/workflows/`:
 | `AZURE_SUBSCRIPTION_ID` | ✅ Already configured |
 | `AZURE_WEBAPP_NAME` | ✅ Set automatically by `terraform-apply.yml` after apply |
 
-## Azure Login Block (MANDATORY — use this exact format in ALL workflows)
+## ⚠️ CRITICAL: Copy These Workflows EXACTLY
 
-```yaml
-- name: Azure Login
-  uses: azure/login@v2
-  with:
-    creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}"}'
-```
+These are battle-tested. Do NOT restructure, add extra steps, change the init approach,
+remove `environment: copilot`, or move `working-directory` to individual steps.
 
-**Never use the OIDC format** (`client-id`, `tenant-id`, `subscription-id` as separate fields) — it requires federated credentials which are not configured. Always use the `creds` JSON string format above.
+---
 
 ## terraform-plan.yml
 
@@ -49,59 +51,59 @@ name: Terraform Plan
 
 on:
   pull_request:
+    branches:
+      - <BASE_BRANCH>
     paths:
       - 'infra/**'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
-  plan:
+  terraform-plan:
+    name: Terraform Plan
     runs-on: ubuntu-latest
+    environment: copilot
+
+    defaults:
+      run:
+        working-directory: infra
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
-
-      - name: Azure Login
+      - name: Login to Azure
         uses: azure/login@v2
         with:
-          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}"}'
+          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        working-directory: infra
-        run: terraform init
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=satfbackenddemo" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="resource_group_name=rg-cc-agent-tf-backend" \
+            -backend-config="key=task-mgmt-api.tfstate"
 
       - name: Terraform Validate
-        working-directory: infra
         run: terraform validate
 
       - name: Terraform Plan
-        id: plan
-        working-directory: infra
-        run: terraform plan -no-color 2>&1 | tee plan_output.txt
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Post Plan to PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const plan = fs.readFileSync('infra/plan_output.txt', 'utf8');
-            const truncated = plan.length > 60000 ? plan.substring(0, 60000) + '\n... (truncated)' : plan;
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## 🔍 Terraform Plan\n\`\`\`\n${truncated}\n\`\`\`\n\n*Approve this PR to apply these changes.*`
-            })
+        run: terraform plan -no-color
 ```
+
+---
 
 ## terraform-apply.yml
 
@@ -111,70 +113,66 @@ name: Terraform Apply
 
 on:
   push:
-    branches: [dev]
+    branches:
+      - <BASE_BRANCH>
     paths:
       - 'infra/**'
 
-jobs:
-  apply:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-      secrets: write
-    steps:
-      - uses: actions/checkout@v4
+permissions:
+  contents: read
 
-      - uses: hashicorp/setup-terraform@v3
+jobs:
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    environment: copilot
+
+    defaults:
+      run:
+        working-directory: infra
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}"}'
-
       - name: Terraform Init
-        working-directory: infra
-        run: terraform init
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=satfbackenddemo" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="resource_group_name=rg-cc-agent-tf-backend" \
+            -backend-config="key=task-mgmt-api.tfstate"
 
       - name: Terraform Apply
-        working-directory: infra
-        run: terraform apply -auto-approve
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: terraform apply -auto-approve -no-color
 
       - name: Set AZURE_WEBAPP_NAME secret
-        working-directory: infra
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
           WEBAPP_NAME=$(terraform output -raw web_app_name)
-          echo "Setting AZURE_WEBAPP_NAME secret to: $WEBAPP_NAME"
+          echo "Setting AZURE_WEBAPP_NAME to: $WEBAPP_NAME"
           gh secret set AZURE_WEBAPP_NAME --body "$WEBAPP_NAME" --repo ${{ github.repository }}
-          echo "✅ AZURE_WEBAPP_NAME secret set to: $WEBAPP_NAME"
-
-      - name: Show Outputs
-        working-directory: infra
-        run: terraform output
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          echo "✅ AZURE_WEBAPP_NAME set to: $WEBAPP_NAME"
 ```
+
+---
 
 ## deploy-app.yml
 
@@ -184,41 +182,44 @@ name: Deploy App
 
 on:
   push:
-    branches: [dev]
+    branches:
+      - <BASE_BRANCH>
     paths:
       - 'app/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-and-deploy:
+    name: Build and Deploy to Azure Web App
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    environment: copilot
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: app/package-lock.json
 
       - name: Install dependencies
         working-directory: app
         run: npm ci
 
-      - name: Run tests
-        working-directory: app
-        run: npm test
-
-      - name: Azure Login
+      - name: Login to Azure
         uses: azure/login@v2
         with:
-          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}"}'
+          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-          package: ./app
+          package: app
 
       - name: Health check
         run: |
@@ -232,6 +233,8 @@ jobs:
           echo "✅ Live at https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net"
 ```
 
+---
+
 ## Pinned Action Versions
 
 | Action | Version |
@@ -241,21 +244,23 @@ jobs:
 | `hashicorp/setup-terraform` | `@v3` |
 | `azure/login` | `@v2` |
 | `azure/webapps-deploy` | `@v3` |
-| `actions/github-script` | `@v7` |
 
 ## Rules
 
+- **Copy workflows EXACTLY** — do not restructure, reorder steps, or add extras
+- Always replace `<BASE_BRANCH>` with the actual base branch from the GitHub Issue
+- Always use `environment: copilot` on every job — secrets are scoped to this environment and jobs WILL FAIL without it
+- Always use `defaults: run: working-directory: infra` on Terraform jobs — never `working-directory:` on individual steps
+- Always use `terraform_wrapper: false` on terraform-apply — required for `terraform output -raw` to work
+- Always use `-backend-config` flags on `terraform init` — never rely on inline backend blocks
+- Always use the `creds` JSON string format for Azure Login — never the OIDC format with separate fields
+- Never add `npm test` or `npm cache` to deploy-app.yml — not configured in this project
+- Never add a "Show Outputs" step — not in the working template
 - Add `# Managed by CICD Engineer Agent` at the top of every workflow file
-- Always use `npm ci` not `npm install` in CI workflows
-- Always run tests before deploying — fail fast if tests fail
-- Always include the health check step in `deploy-app.yml`
-- Always use the `creds` JSON format for Azure Login — never the OIDC format
-- `terraform-apply.yml` must include `terraform_wrapper: false` in setup-terraform for output parsing
-- `terraform-apply.yml` must include `permissions: secrets: write` for setting the secret
 - Do not write application code or Terraform — those belong to other agents
 
 ## Git Workflow
 
-- Branch: `feature/cicd-pipelines` from `dev`
+- Branch: `feature/cicd-pipelines` from `<BASE_BRANCH>` (append `-v1`, `-v2` if branch exists)
 - PR title: `ci: add Terraform and app deploy pipelines (CICD Engineer Agent)`
 - PR body must include `Closes #<issue-number>`

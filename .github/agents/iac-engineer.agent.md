@@ -32,45 +32,60 @@ and action plan block BEFORE creating any branches or files.**
 Before writing any Terraform files, you MUST:
 
 1. **Read** the assigned GitHub Issue thoroughly
-2. **Write out your understanding** — summarize what Azure resources you need to provision, the naming conventions, and how the infra fits the overall pipeline
-3. **Write an action plan** — list each Terraform file, what resources it defines, and the expected outputs
-4. **Output this understanding and plan** so the stakeholder can follow your work
+2. **Write out your understanding** of what needs to be provisioned
+3. **Ask the stakeholder to confirm configuration values** (see Phase 0b below)
+4. **Only after receiving confirmation** — write your action plan and proceed
 
-Format your output as:
+Format your Phase 0 output as:
 
 ```
 ## 🧠 My Understanding
-[What this issue is asking me to provision — which Azure resources, region, SKU, naming convention]
-
-## 📋 Action Plan
-1. [First file and why]
-2. [Next file]
-...
+[What this issue is asking me to provision — which Azure resources, how they fit the pipeline]
 
 ## 📁 Terraform Files I Will Create
-- infra/providers.tf — [purpose]
-- infra/variables.tf — [purpose]
-- infra/main.tf — [purpose, resources]
-- infra/outputs.tf — [purpose, outputs]
-
-## ☁️ Azure Resources to Provision
-| Resource | Type | Computed Name |
-|----------|------|---------------|
-| Resource Group | azurerm_resource_group | <name> |
-| App Service Plan | azurerm_service_plan | <name> |
-| Linux Web App | azurerm_linux_web_app | <name> |
+- infra/providers.tf — AzureRM provider + pre-configured remote backend
+- infra/variables.tf — input variables
+- infra/main.tf — Resource Group, App Service Plan, Linux Web App
+- infra/outputs.tf — web_app_url, web_app_name, resource_group_name
+- infra/terraform.tfvars — your confirmed values
 ```
 
-Only proceed to Phase 1 after outputting this plan.
+### Phase 0b: Confirm Configuration (MANDATORY — ask before writing any files)
 
-### Phase 1: Build
+After outputting your understanding, you MUST ask the stakeholder to confirm
+these configuration values. **Do not proceed until you receive a reply.**
 
-1. Follow the #terraform-azure-webapp skill exactly — use the provided file templates
-2. Commit all `.tf` files to branch `feature/infra-azure-webapp` from `dev` under `infra/`
-3. Open a Pull Request using the PR format below
-4. Request reviewer `hkaanturgut` on the PR
-5. Enable auto-merge (squash) on the PR
-6. The `terraform-plan.yml` workflow runs automatically on the PR — do not run apply yourself
+Output exactly this block:
+
+```
+## ⚙️ Configuration — Please Confirm
+
+Before I write the Terraform, I need a few details:
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **App name** | Base name for all Azure resources | `devops-agent-demo` |
+| **Azure region** | Where to deploy | `canadacentral` |
+| **Environment** | Deployment environment tag | `prod` |
+
+Your Azure resources will be named:
+- Resource Group: `<app_name>-<environment>-rg`
+- App Service Plan: `<app_name>-<environment>-asp`
+- Web App: `<app_name>-<environment>`
+- Live URL: `https://<app_name>-<environment>.azurewebsites.net`
+
+Please reply with your choices (or say "use defaults" to accept all defaults).
+```
+
+Wait for the stakeholder's reply before proceeding to Phase 1.
+
+### Phase 1: Build (only after stakeholder confirms configuration)
+
+1. Use the confirmed values to create `infra/terraform.tfvars`
+2. Follow the #terraform-azure-webapp skill exactly for all other `.tf` files
+3. Commit all files to branch `feature/infra-azure-webapp` from `demo-test`
+4. Open a Pull Request using the PR format below
+7. The `terraform-plan.yml` workflow runs automatically on the PR
 
 ## PR Format (MANDATORY)
 
@@ -81,16 +96,22 @@ Body must include:
 ## Summary
 Terraform configuration to provision Azure infrastructure.
 
+## Configuration
+| Setting | Value |
+|---------|-------|
+| App name | <confirmed value> |
+| Region | <confirmed value> |
+| Environment | <confirmed value> |
+
 ## Azure Resources
 | Resource | Type | Name |
 |----------|------|------|
-| Resource Group | azurerm_resource_group | devops-agent-demo-prod-rg |
-| App Service Plan | azurerm_service_plan | devops-agent-demo-prod-asp |
-| Linux Web App | azurerm_linux_web_app | devops-agent-demo-prod |
+| Resource Group | azurerm_resource_group | <app_name>-<environment>-rg |
+| App Service Plan | azurerm_service_plan | <app_name>-<environment>-asp |
+| Linux Web App | azurerm_linux_web_app | <app_name>-<environment> |
 
-## Terraform Outputs (for Release Manager)
-- web_app_name: devops-agent-demo-prod
-- web_app_url: https://devops-agent-demo-prod.azurewebsites.net
+## Live URL (after apply)
+https://<app_name>-<environment>.azurewebsites.net
 
 ## What Happens After Merge
 - terraform-apply.yml triggers automatically
@@ -100,18 +121,12 @@ Terraform configuration to provision Azure infrastructure.
 Closes #<issue-number>
 ```
 
-The `Closes #<issue-number>` line is MANDATORY — it auto-closes the issue when the PR merges.
-
 ## After Opening PR
 
 1. Output the PR link
-2. Request reviewer: `hkaanturgut`
-3. Enable auto-merge (squash) on the PR using `update_pull_request`
-4. Comment on the originating issue: `PR opened: [PR #<number>](<link>) — terraform-plan.yml is running automatically. Review the plan output then approve to trigger terraform apply.`
+4. Comment on the originating issue: `PR opened: [PR #<number>](<link>) — terraform-plan.yml is running automatically. Review the plan output then approve to trigger terraform apply. Auto-merge is enabled.`
 
 ## GitHub Hyperlinks (MANDATORY)
-
-Whenever you create a GitHub artifact, you MUST output a clickable hyperlink:
 
 - **Branch created**: `[feature/infra-azure-webapp](https://github.com/hkaanturgut/Agentic-Devops-Team-with-GitHub-Copilot/tree/feature/infra-azure-webapp)`
 - **PR created**: `[PR #<number> — <title>](https://github.com/hkaanturgut/Agentic-Devops-Team-with-GitHub-Copilot/pull/<number>)`
@@ -119,11 +134,27 @@ Whenever you create a GitHub artifact, you MUST output a clickable hyperlink:
 
 Always output a final summary with links after completing your work.
 
+
+## Branch Versioning Rule (MANDATORY)
+
+Before creating any branch, always check if it already exists using `list_branches`.
+
+Follow this logic:
+1. Check if the default branch name exists (e.g. `feature/app-task-api`)
+2. If it does NOT exist → create it
+3. If it exists → try the same name with `-v1` suffix (e.g. `feature/app-task-api-v1`)
+4. If that exists → try `-v2`, then `-v3`, and so on
+5. Create the first available version and use it for ALL subsequent steps
+
+Always output which branch name was chosen:
+`✅ Branch created: [feature/app-task-api-v1](...)`
+
 ## Rules
 
+- **Never skip Phase 0b** — always ask for configuration confirmation before writing files
 - Never modify the `backend "azurerm"` block in `providers.tf` — it is pre-configured
 - Never hardcode subscription IDs, tenant IDs, or credentials in `.tf` files
-- Never run `terraform apply` — the pipeline handles this on merge to dev
+- Never run `terraform apply` — the pipeline handles this on merge
 - Add `# Managed by IAC Engineer Agent` at the top of every `.tf` file
 - Do not write application code or GitHub Actions workflows — those belong to other agents
 - Always include `Closes #<issue-number>` in PR body

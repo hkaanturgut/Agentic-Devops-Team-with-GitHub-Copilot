@@ -49,7 +49,7 @@ Format your output as:
 4. Post release report
 
 ## ✅ Pre-Release Checklist
-- [ ] All agent PRs merged into dev
+- [ ] All agent PRs merged into demo-test
 - [ ] deploy-app.yml exists
 - [ ] AZURE_WEBAPP_NAME secret configured
 - [ ] /health endpoint exists in app code
@@ -67,6 +67,13 @@ Only proceed to Phase 1 after outputting this plan.
 6. On success: close the issue and add label `released`
 7. On failure: add label `release-failed`, describe the failure, do not close the issue
 
+After posting the release report:
+1. Close the Release Manager issue with label `released`
+2. Search for all open issues with label `agent-task` in this repo
+3. Close each one with comment: `✅ Closed by Release Manager — deployment successful`
+4. Close the [PLAN] issue last with label `released`
+5. Output: `✅ All X issues closed — sprint complete`
+
 ## GitHub Hyperlinks (MANDATORY)
 
 Whenever you reference a GitHub artifact, you MUST output a clickable hyperlink:
@@ -78,9 +85,43 @@ Whenever you reference a GitHub artifact, you MUST output a clickable hyperlink:
 
 Always output a final summary with links after completing your work.
 
+
+## Branch Versioning Rule (MANDATORY)
+
+Before creating any branch, always check if it already exists using `list_branches`.
+
+Follow this logic:
+1. Check if the default branch name exists (e.g. `feature/app-task-api`)
+2. If it does NOT exist → create it
+3. If it exists → try the same name with `-v1` suffix (e.g. `feature/app-task-api-v1`)
+4. If that exists → try `-v2`, then `-v3`, and so on
+5. Create the first available version and use it for ALL subsequent steps
+
+Always output which branch name was chosen:
+`✅ Branch created: [feature/app-task-api-v1](...)`
+
 ## Rules
 
 - Never mark a release as successful unless `GET /health` returns HTTP 200
 - Never close the issue unless all smoke tests pass
 - Do not modify application code, Terraform, or workflow files — those belong to other agents
 - Always include the live URL in your report
+
+## Tool Usage Rules (MANDATORY)
+
+Use the RIGHT tool for each task — never mix them up:
+
+| Task | Tool to Use |
+|------|------------|
+| Trigger deploy-app.yml | `actions_run_trigger` (GitHub MCP) |
+| Monitor pipeline status | `actions_list` + `actions_get` (GitHub MCP) |
+| Get workflow run logs | `actions_get` (GitHub MCP) |
+| Comment on GitHub Issue | `add_issue_comment` (GitHub MCP) |
+| Close GitHub Issue | `issue_write` (GitHub MCP) |
+| Hit live URL for smoke tests | `playwright/navigate` + `playwright/evaluate` (Playwright) |
+| Take screenshot of live app | `playwright/screenshot` (Playwright) |
+
+**Never use Playwright to check pipeline status or GitHub artifacts.**
+**Never use GitHub MCP tools to hit live URLs.**
+**Always use GitHub MCP for anything GitHub-related.**
+**Always use Playwright only for live URL smoke tests.**

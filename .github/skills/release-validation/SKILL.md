@@ -14,7 +14,7 @@ description: >
 
 Before triggering deployment, confirm all of the following:
 
-- [ ] All PRs from other agents (Software Developer, IAC Engineer, CICD Engineer) are merged into `dev`
+- [ ] All PRs from other agents (Software Developer, IAC Engineer, CICD Engineer) are merged into `demo-test`
 - [ ] `deploy-app.yml` exists in `.github/workflows/`
 - [ ] `AZURE_WEBAPP_NAME` secret is configured (set after Terraform apply outputs `web_app_name`)
 - [ ] The `/health` endpoint exists in the application code

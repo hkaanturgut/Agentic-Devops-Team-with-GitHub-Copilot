@@ -4,7 +4,8 @@ description: >
   Write Terraform to provision an Azure Web App for this project. Use this skill when asked to write
   terraform, provision azure, create infra, set up the cloud infrastructure, or deploy to azure web app.
   Covers full file structure under infra/, exact providers.tf with pre-configured remote backend,
-  variables.tf, main.tf with Azure resource group, service plan, and linux web app, and outputs.tf.
+  variables.tf without hardcoded defaults (values come from terraform.tfvars confirmed by stakeholder),
+  main.tf with Azure resource group, service plan, and linux web app, and outputs.tf.
 ---
 
 # Terraform Azure Web App Skill
@@ -15,10 +16,11 @@ Create all Terraform files under `infra/`:
 
 ```
 infra/
-├── providers.tf      # AzureRM provider + remote backend (DO NOT MODIFY BACKEND CONFIG)
-├── variables.tf      # Input variables with descriptions and defaults
-├── main.tf           # Core Azure resource definitions
-└── outputs.tf        # Key outputs (web app URL, web app name, resource group name)
+├── providers.tf        # AzureRM provider + remote backend (DO NOT MODIFY BACKEND CONFIG)
+├── variables.tf        # Variable declarations — NO defaults (values in terraform.tfvars)
+├── main.tf             # Core Azure resource definitions
+├── outputs.tf          # Key outputs (web app URL, web app name, resource group name)
+└── terraform.tfvars    # Stakeholder-confirmed values — app_name, location, environment
 ```
 
 ## providers.tf — Use EXACTLY This Content
@@ -49,27 +51,24 @@ provider "azurerm" {
 }
 ```
 
-## variables.tf
+## variables.tf — No Defaults (values come from terraform.tfvars)
 
 ```hcl
 # Managed by IAC Engineer Agent
 
 variable "app_name" {
   type        = string
-  description = "Base name for all Azure resources"
-  default     = "devops-agent-demo"
+  description = "Base name for all Azure resources (e.g. myapp-demo)"
 }
 
 variable "location" {
   type        = string
-  description = "Azure region to deploy into"
-  default     = "canadacentral"
+  description = "Azure region to deploy into (e.g. canadacentral, eastus, westeurope)"
 }
 
 variable "environment" {
   type        = string
-  description = "Deployment environment"
-  default     = "prod"
+  description = "Deployment environment (e.g. prod, staging, dev)"
 }
 
 variable "node_version" {
@@ -78,6 +77,19 @@ variable "node_version" {
   default     = "20-lts"
 }
 ```
+
+## terraform.tfvars — Use Stakeholder-Confirmed Values
+
+```hcl
+# Managed by IAC Engineer Agent
+# Values confirmed by stakeholder before provisioning
+
+app_name    = "<stakeholder-confirmed-app-name>"
+location    = "<stakeholder-confirmed-region>"
+environment = "<stakeholder-confirmed-environment>"
+```
+
+Replace the placeholders with the actual values confirmed by the stakeholder in Phase 0b.
 
 ## main.tf
 
@@ -141,29 +153,30 @@ output "resource_group_name" {
 }
 ```
 
-## Azure Resources Being Provisioned
+## Azure Regions Reference
 
-| Resource | Terraform Type | Naming Pattern |
-|----------|---------------|----------------|
-| Resource Group | `azurerm_resource_group` | `{app_name}-{environment}-rg` |
-| App Service Plan | `azurerm_service_plan` | `{app_name}-{environment}-asp` |
-| Linux Web App | `azurerm_linux_web_app` | `{app_name}-{environment}` |
-
-With defaults: `devops-agent-demo-prod-rg`, `devops-agent-demo-prod-asp`, `devops-agent-demo-prod`
+| Region | Code |
+|--------|------|
+| Canada Central | `canadacentral` |
+| East US | `eastus` |
+| West Europe | `westeurope` |
+| UK South | `uksouth` |
+| Australia East | `australiaeast` |
 
 ## Important Rules
 
 - **Never** modify the `backend "azurerm"` block — it is pre-configured for this project
 - **Never** hardcode subscription IDs, tenant IDs, or credentials in `.tf` files
-- **Never** run `terraform apply` — the CI/CD pipeline handles this automatically on merge to dev
-- **node_version must be `"20-lts"`** — NOT `"NODE|20-lts"` (the `NODE|` prefix is invalid for azurerm provider)
-- Always use variables for environment-specific values
+- **Never** run `terraform apply` — the CI/CD pipeline handles this automatically on merge
+- **Never** add defaults to `app_name`, `location`, or `environment` in `variables.tf` — values come from `terraform.tfvars`
+- **node_version must be `"20-lts"`** — NOT `"NODE|20-lts"` (the `NODE|` prefix is invalid for the azurerm provider)
+- Always use `terraform.tfvars` for stakeholder-confirmed values
 - Keep SKU at `B1` unless explicitly requested otherwise
 - Add `# Managed by IAC Engineer Agent` at the top of every `.tf` file
 
 ## Git Workflow
 
-- Branch: `feature/infra-azure-webapp` from `dev`
+- Branch: `feature/infra-azure-webapp` from `demo-test`
 - PR title: `infra: provision Azure Web App (IAC Engineer Agent)`
-- PR body must include `Closes #<issue-number>`
+- PR body must include the confirmed configuration table and `Closes #<issue-number>`
 - After merge: `terraform-apply.yml` runs automatically AND sets `AZURE_WEBAPP_NAME` secret automatically

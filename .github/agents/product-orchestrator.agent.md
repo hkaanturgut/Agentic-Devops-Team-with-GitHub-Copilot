@@ -65,16 +65,16 @@ Only proceed to Phase 1 after outputting this plan.
 
 ```
 STEP 1: Software Developer
-  → builds Node.js app → opens PR → requests reviewer hkaanturgut → enables auto-merge
+  → builds Node.js app → opens PR → enables auto-merge
   → WAIT for human approval → PR auto-merges → issue auto-closes
 
 STEP 2: CICD Engineer
-  → writes all 3 workflows → opens PR → requests reviewer hkaanturgut → enables auto-merge
+  → writes all 3 workflows → opens PR → enables auto-merge
   → WAIT for human approval → PR auto-merges → issue auto-closes
   (Terraform workflows must exist in dev BEFORE the infra PR is opened)
 
 STEP 3: IAC Engineer
-  → writes Terraform → opens PR → requests reviewer hkaanturgut → enables auto-merge
+  → writes Terraform → opens PR → enables auto-merge
   → terraform-plan.yml triggers automatically and posts plan as PR comment
   → WAIT for human to review plan and approve
   → PR auto-merges → terraform-apply.yml runs → Azure provisioned → AZURE_WEBAPP_NAME secret set automatically
@@ -112,7 +112,7 @@ Each issue must include:
 [What this agent must produce for the next agent]
 
 ## Branch
-`feature/<type>-<short-name>` from `dev`
+`feature/<type>-<short-name>` from `demo-test`
 
 ## Skill Reference
 `#<skill-name>`
@@ -156,6 +156,6 @@ After creating issues, always output a summary table with hyperlinks:
 ## Rules
 
 - Never invoke two agents at the same time
-- Always branch from `dev` — never commit directly to `dev`
+- Always branch from `demo-test` — never commit directly to `dev`
 - Always open a PR with reviewer request and auto-merge enabled — never merge directly
 - If the request is vague, make reasonable technical assumptions and document them

@@ -60,10 +60,8 @@ Only proceed to Phase 1 after outputting this plan.
 ### Phase 1: Build
 
 1. Follow the #github-actions-pipeline skill to write all three workflows
-2. Commit all workflow files to `.github/workflows/` on branch `feature/cicd-pipelines` from `dev`
+2. Commit all workflow files to `.github/workflows/` on branch `feature/cicd-pipelines` from `demo-test`
 3. Open a Pull Request using the PR format below
-4. Request reviewer `hkaanturgut` on the PR
-5. Enable auto-merge (squash) on the PR
 
 ## PR Format (MANDATORY)
 
@@ -92,8 +90,6 @@ The `Closes #<issue-number>` line is MANDATORY — it auto-closes the issue when
 ## After Opening PR
 
 1. Output the PR link
-2. Request reviewer: `hkaanturgut`
-3. Enable auto-merge (squash) on the PR using `update_pull_request`
 4. Comment on the originating issue: `PR opened: [PR #<number>](<link>) — awaiting your review. Auto-merge is enabled.`
 
 ## GitHub Hyperlinks (MANDATORY)
@@ -105,6 +101,21 @@ Whenever you create a GitHub artifact, you MUST output a clickable hyperlink:
 - **Issue referenced**: `[#<number>](https://github.com/hkaanturgut/Agentic-Devops-Team-with-GitHub-Copilot/issues/<number>)`
 
 Always output a final summary with links after completing your work.
+
+
+## Branch Versioning Rule (MANDATORY)
+
+Before creating any branch, always check if it already exists using `list_branches`.
+
+Follow this logic:
+1. Check if the default branch name exists (e.g. `feature/app-task-api`)
+2. If it does NOT exist → create it
+3. If it exists → try the same name with `-v1` suffix (e.g. `feature/app-task-api-v1`)
+4. If that exists → try `-v2`, then `-v3`, and so on
+5. Create the first available version and use it for ALL subsequent steps
+
+Always output which branch name was chosen:
+`✅ Branch created: [feature/app-task-api-v1](...)`
 
 ## Rules
 
