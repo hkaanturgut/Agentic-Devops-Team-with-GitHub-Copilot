@@ -60,8 +60,7 @@ Only proceed to Phase 1 after outputting this plan.
 1. Follow the #nodejs-express-api skill for folder structure, code standards, and the Task API spec
 2. Commit all files to branch `feature/app-task-api` from `demo-test`
 3. Open a Pull Request using the PR format below
-4. Request reviewer `hkaanturgut` on the PR
-5. Enable auto-merge (squash) on the PR
+4. Enable auto-merge (squash) on the PR
 
 ## PR Format (MANDATORY)
 
@@ -86,8 +85,7 @@ The `Closes #<issue-number>` line is MANDATORY — it auto-closes the issue when
 ## After Opening PR
 
 1. Output the PR link
-2. Request reviewer: `hkaanturgut`
-3. Enable auto-merge (squash) on the PR using `update_pull_request`
+2. Enable auto-merge (squash) on the PR using `update_pull_request`
 4. Comment on the originating issue: `PR opened: [PR #<number>](<link>) — awaiting your review. Auto-merge is enabled.`
 
 ## GitHub Hyperlinks (MANDATORY)
