@@ -17,8 +17,8 @@ Create all three workflow files under `.github/workflows/`:
 | File | Trigger | Purpose |
 |------|---------|---------|
 | `terraform-plan.yml` | PR touching `infra/**` | Runs `terraform plan`, posts output as PR comment |
-| `terraform-apply.yml` | Push to `dev` touching `infra/**` | Runs `terraform apply`, sets `AZURE_WEBAPP_NAME` secret automatically |
-| `deploy-app.yml` | Push to `dev` touching `app/**` + `workflow_dispatch` | Build, test, deploy Node.js to Azure |
+| `terraform-apply.yml` | Push to `demo-test` touching `infra/**` | Runs `terraform apply`, sets `AZURE_WEBAPP_NAME` secret automatically |
+| `deploy-app.yml` | Push to `demo-test` touching `app/**` + `workflow_dispatch` | Build, test, deploy Node.js to Azure |
 
 ## Pre-Configured Secrets
 
@@ -256,6 +256,6 @@ jobs:
 
 ## Git Workflow
 
-- Branch: `feature/cicd-pipelines` from `dev`
+- Branch: `feature/cicd-pipelines` from `demo-test`
 - PR title: `ci: add Terraform and app deploy pipelines (CICD Engineer Agent)`
 - PR body must include `Closes #<issue-number>`

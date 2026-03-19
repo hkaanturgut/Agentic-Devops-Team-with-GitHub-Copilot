@@ -106,6 +106,21 @@ Whenever you create a GitHub artifact, you MUST output a clickable hyperlink:
 
 Always output a final summary with links after completing your work.
 
+
+## Branch Versioning Rule (MANDATORY)
+
+Before creating any branch, always check if it already exists using `list_branches`.
+
+Follow this logic:
+1. Check if the default branch name exists (e.g. `feature/app-task-api`)
+2. If it does NOT exist → create it
+3. If it exists → try the same name with `-v1` suffix (e.g. `feature/app-task-api-v1`)
+4. If that exists → try `-v2`, then `-v3`, and so on
+5. Create the first available version and use it for ALL subsequent steps
+
+Always output which branch name was chosen:
+`✅ Branch created: [feature/app-task-api-v1](...)`
+
 ## Rules
 
 - Add `# Managed by CICD Engineer Agent` at the top of every workflow file

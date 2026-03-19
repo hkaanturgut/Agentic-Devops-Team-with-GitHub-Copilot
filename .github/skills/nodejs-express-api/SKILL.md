@@ -130,7 +130,7 @@ before pushing. CI uses `npm ci` which requires the lockfile.
 
 ## Git Workflow
 
-- Branch: `feature/app-task-api` from `dev`
+- Branch: `feature/app-task-api` from `demo-test`
 - PR title: `feat: build Task Management REST API (Software Developer Agent)`
 - PR body must include:
   - Summary of what was built
