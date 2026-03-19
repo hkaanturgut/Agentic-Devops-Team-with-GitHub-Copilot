@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  secrets: write
 
 jobs:
   terraform-apply:
@@ -39,8 +37,6 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_wrapper: false
 
       - name: Terraform Init
         run: |
@@ -51,16 +47,4 @@ jobs:
             -backend-config="key=task-mgmt-api.tfstate"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
-
-      - name: Set AZURE_WEBAPP_NAME secret
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          WEBAPP_NAME=$(terraform output -raw web_app_name)
-          echo "Setting AZURE_WEBAPP_NAME secret to: $WEBAPP_NAME"
-          gh secret set AZURE_WEBAPP_NAME --body "$WEBAPP_NAME" --repo ${{ github.repository }}
-          echo "AZURE_WEBAPP_NAME secret set to: $WEBAPP_NAME"
-
-      - name: Show Outputs
-        run: terraform output
+        run: terraform apply -auto-approve -no-color
