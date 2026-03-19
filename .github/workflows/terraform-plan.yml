@@ -14,6 +14,14 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
 
+      - name: Azure Login
+        run: |
+          az login --service-principal \
+            -u "${{ secrets.AZURE_CLIENT_ID }}" \
+            -p "${{ secrets.AZURE_CLIENT_SECRET }}" \
+            --tenant "${{ secrets.AZURE_TENANT_ID }}"
+          az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+
       - name: Terraform Init
         working-directory: infra
         run: terraform init
