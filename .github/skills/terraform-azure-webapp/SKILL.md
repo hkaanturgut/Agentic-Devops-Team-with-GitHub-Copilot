@@ -75,7 +75,7 @@ variable "environment" {
 variable "node_version" {
   type        = string
   description = "Node.js runtime version for Azure Web App"
-  default     = "NODE|20-lts"
+  default     = "20-lts"
 }
 ```
 
@@ -132,7 +132,7 @@ output "web_app_url" {
 
 output "web_app_name" {
   value       = azurerm_linux_web_app.main.name
-  description = "Azure Web App name — used as AZURE_WEBAPP_NAME secret in CI/CD"
+  description = "Azure Web App name — set automatically as AZURE_WEBAPP_NAME secret by terraform-apply.yml"
 }
 
 output "resource_group_name" {
@@ -155,18 +155,15 @@ With defaults: `devops-agent-demo-prod-rg`, `devops-agent-demo-prod-asp`, `devop
 
 - **Never** modify the `backend "azurerm"` block — it is pre-configured for this project
 - **Never** hardcode subscription IDs, tenant IDs, or credentials in `.tf` files
-- **Never** run `terraform apply` — the CI/CD pipeline handles this automatically on merge to main
+- **Never** run `terraform apply` — the CI/CD pipeline handles this automatically on merge to dev
+- **node_version must be `"20-lts"`** — NOT `"NODE|20-lts"` (the `NODE|` prefix is invalid for azurerm provider)
 - Always use variables for environment-specific values
 - Keep SKU at `B1` unless explicitly requested otherwise
 - Add `# Managed by IAC Engineer Agent` at the top of every `.tf` file
 
 ## Git Workflow
 
-- Branch: `feature/infra-azure-webapp` from `main`
+- Branch: `feature/infra-azure-webapp` from `dev`
 - PR title: `infra: provision Azure Web App (IAC Engineer Agent)`
-- PR body must include:
-  - List of all Azure resources being created with their computed names
-  - Terraform outputs the CICD Engineer will need (`web_app_name`, `web_app_url`)
-  - Note that `terraform-plan.yml` CI will run automatically and post plan as a PR comment
-  - Note that merge to `main` will auto-trigger `terraform apply` to provision real Azure resources
-  - Link to the originating GitHub Issue
+- PR body must include `Closes #<issue-number>`
+- After merge: `terraform-apply.yml` runs automatically AND sets `AZURE_WEBAPP_NAME` secret automatically

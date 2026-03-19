@@ -124,9 +124,13 @@ Response (201):
 }
 ```
 
+## Critical
+Always commit `package-lock.json` — run `npm install` locally 
+before pushing. CI uses `npm ci` which requires the lockfile.
+
 ## Git Workflow
 
-- Branch: `feature/app-task-api` from `main`
+- Branch: `feature/app-task-api` from `dev`
 - PR title: `feat: build Task Management REST API (Software Developer Agent)`
 - PR body must include:
   - Summary of what was built
