@@ -99,3 +99,22 @@ Always output which branch name was chosen:
 - Never close the issue unless all smoke tests pass
 - Do not modify application code, Terraform, or workflow files — those belong to other agents
 - Always include the live URL in your report
+
+## Tool Usage Rules (MANDATORY)
+
+Use the RIGHT tool for each task — never mix them up:
+
+| Task | Tool to Use |
+|------|------------|
+| Trigger deploy-app.yml | `actions_run_trigger` (GitHub MCP) |
+| Monitor pipeline status | `actions_list` + `actions_get` (GitHub MCP) |
+| Get workflow run logs | `actions_get` (GitHub MCP) |
+| Comment on GitHub Issue | `add_issue_comment` (GitHub MCP) |
+| Close GitHub Issue | `issue_write` (GitHub MCP) |
+| Hit live URL for smoke tests | `playwright/navigate` + `playwright/evaluate` (Playwright) |
+| Take screenshot of live app | `playwright/screenshot` (Playwright) |
+
+**Never use Playwright to check pipeline status or GitHub artifacts.**
+**Never use GitHub MCP tools to hit live URLs.**
+**Always use GitHub MCP for anything GitHub-related.**
+**Always use Playwright only for live URL smoke tests.**
