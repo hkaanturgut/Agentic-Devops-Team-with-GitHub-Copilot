@@ -3,58 +3,59 @@ name: Terraform Apply
 
 on:
   push:
-    branches: [demo-test]
+    branches:
+      - demo-test
     paths:
       - 'infra/**'
 
-jobs:
-  apply:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-      secrets: write
-    steps:
-      - uses: actions/checkout@v4
+permissions:
+  contents: read
+  pull-requests: write
+  secrets: write
 
-      - uses: hashicorp/setup-terraform@v3
+jobs:
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    environment: copilot
+    defaults:
+      run:
+        working-directory: infra
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
 
-      - name: Azure Login
-        run: |
-          az login --service-principal \
-            -u "${{ secrets.AZURE_CLIENT_ID }}" \
-            -p "${{ secrets.AZURE_CLIENT_SECRET }}" \
-            --tenant "${{ secrets.AZURE_TENANT_ID }}"
-          az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-
       - name: Terraform Init
-        working-directory: infra
-        run: terraform init
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=satfbackenddemo" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="resource_group_name=rg-cc-agent-tf-backend" \
+            -backend-config="key=task-mgmt-api.tfstate"
 
       - name: Terraform Apply
-        working-directory: infra
         run: terraform apply -auto-approve
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Set AZURE_WEBAPP_NAME secret
-        working-directory: infra
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
           WEBAPP_NAME=$(terraform output -raw web_app_name)
           echo "Setting AZURE_WEBAPP_NAME secret to: $WEBAPP_NAME"
@@ -62,10 +63,4 @@ jobs:
           echo "AZURE_WEBAPP_NAME secret set to: $WEBAPP_NAME"
 
       - name: Show Outputs
-        working-directory: infra
         run: terraform output
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

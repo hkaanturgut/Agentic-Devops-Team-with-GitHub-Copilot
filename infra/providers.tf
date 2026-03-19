@@ -8,12 +8,7 @@ terraform {
     }
   }
 
-  backend "azurerm" {
-    resource_group_name  = "rg-cc-agent-tf-backend"
-    storage_account_name = "satfbackenddemo"
-    container_name       = "tfstate"
-    key                  = "demo.tfstate"
-  }
+  backend "azurerm" {}
 }
 
 provider "azurerm" {
