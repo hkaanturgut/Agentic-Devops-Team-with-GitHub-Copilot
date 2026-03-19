@@ -7,21 +7,12 @@ An autonomous multi-agent DevOps system built on **GitHub Copilot Agent Mode**. 
 
 ---
 
-## 📺 Demo Overview
+## 📺 What This Does
 
-Send one prompt to the Product Orchestrator:
-
-```
-We just received a stakeholder request.
-A new client needs a Task Management REST API built and deployed to Azure.
-The API must support creating, listing, updating, and deleting tasks.
-Base branch: main
-```
-
-What happens next is fully autonomous:
+One prompt. Five agents. One live API on Azure.
 
 ```
-Product Orchestrator  →  Creates GitHub Issues + coordinates the team
+Product Orchestrator  →  Plans the project, creates GitHub Issues, coordinates the team
         ↓
 Software Developer    →  Builds the Node.js Express API, opens PR
         ↓
@@ -32,7 +23,7 @@ IAC Engineer          →  Writes Terraform, opens PR → plan runs automaticall
 Release Manager       →  Triggers deploy, runs 7 smoke tests, posts release report, closes all issues
 ```
 
-**Result:** A live Task Management API running on Azure Web App in under 20 minutes.
+**Result:** A live Task Management API running on Azure Web App — built entirely by AI agents.
 
 ---
 
@@ -52,7 +43,7 @@ Each agent lives in `.github/agents/` and is invoked manually in VS Code Copilot
 
 ### 6 Skills
 
-Skills live in `.github/skills/` and are referenced by agents using `#skill-name`. They encode proven patterns so agents copy working templates instead of hallucinating their own.
+Skills live in `.github/skills/` and are referenced by agents using `#skill-name`. They encode proven, battle-tested patterns so agents copy working templates instead of hallucinating their own.
 
 | Skill | Purpose |
 |-------|---------|
@@ -102,19 +93,115 @@ Skills live in `.github/skills/` and are referenced by agents using `#skill-name
 
 ---
 
-## 🔌 MCP Servers
+## ✅ Prerequisites
 
-Agents use three MCP servers configured in `.vscode/mcp.json`:
+Before running the demo for the first time, complete all of these steps.
 
-| Server | Purpose |
-|--------|---------|
-| **GitHub MCP** (`ghcr.io/github/github-mcp-server`) | Create branches, push files, open PRs, manage issues, trigger workflows |
-| **Azure MCP** (`@azure/mcp`) | Query and manage Azure resources post-deployment |
-| **Playwright MCP** (`@playwright/mcp`) | Navigate live URLs for smoke testing |
+### 1. Tools
 
-The Copilot Agent (cloud-side) uses a separate MCP config in **repo Settings → Copilot → Coding Agent**, with Azure credentials injected via `COPILOT_MCP_*` environment secrets.
+- **VS Code Insiders** with the GitHub Copilot extension installed and signed in
+- **Docker Desktop** running (required for the GitHub MCP server)
+- **Node.js 20+** installed locally
+- **Azure CLI** (`az`) installed and logged in
+- **GitHub CLI** (`gh`) installed and authenticated
 
-### Local MCP Setup (`.vscode/mcp.json`)
+### 2. Pull the Latest GitHub MCP Image
+
+The `actions` toolset is only available in recent builds. Always pull before use:
+
+```bash
+docker pull ghcr.io/github/github-mcp-server:latest
+```
+
+### 3. Azure Service Principal
+
+Create a service principal with Contributor role on your subscription:
+
+```bash
+az ad sp create-for-rbac \
+  --name "copilot-agents-demo" \
+  --role Contributor \
+  --scopes /subscriptions/<your-subscription-id> \
+  --sdk-auth
+```
+
+Save the output — you'll need `clientId`, `clientSecret`, `tenantId`, and `subscriptionId`.
+
+### 4. Terraform Backend Storage
+
+Create the Azure Storage Account that Terraform will use to store remote state:
+
+```bash
+az group create --name rg-cc-agent-tf-backend --location canadacentral
+
+az storage account create \
+  --name satfbackenddemo \
+  --resource-group rg-cc-agent-tf-backend \
+  --sku Standard_LRS
+
+az storage container create \
+  --name tfstate \
+  --account-name satfbackenddemo
+```
+
+### 5. GitHub Actions Secrets
+
+Set these at the repo level — all three workflows depend on them:
+
+```bash
+gh secret set AZURE_CLIENT_ID       --body "<clientId>"
+gh secret set AZURE_CLIENT_SECRET   --body "<clientSecret>"
+gh secret set AZURE_TENANT_ID       --body "<tenantId>"
+gh secret set AZURE_SUBSCRIPTION_ID --body "<subscriptionId>"
+```
+
+> `AZURE_WEBAPP_NAME` is set **automatically** by `terraform-apply.yml` after infra is provisioned. Do not set it manually.
+
+### 6. Copilot Agent Environment Secrets
+
+The cloud-side Copilot Agent needs its own Azure credentials to use the Azure MCP server. These must be in the `copilot` GitHub Actions environment:
+
+```bash
+gh secret set COPILOT_MCP_AZURE_CLIENT_ID       --env copilot --body "<clientId>"
+gh secret set COPILOT_MCP_AZURE_CLIENT_SECRET   --env copilot --body "<clientSecret>"
+gh secret set COPILOT_MCP_AZURE_TENANT_ID       --env copilot --body "<tenantId>"
+gh secret set COPILOT_MCP_AZURE_SUBSCRIPTION_ID --env copilot --body "<subscriptionId>"
+```
+
+> All GitHub Actions jobs use `environment: copilot`. Secrets are scoped to this environment — jobs will silently fail without it.
+
+### 7. Repo-Level Copilot MCP Config
+
+In your repo on GitHub, go to **Settings → Copilot → Coding Agent** and add this MCP config so the Copilot Agent can use Azure MCP and Playwright MCP in the cloud:
+
+```json
+{
+  "mcpServers": {
+    "azure": {
+      "type": "local",
+      "command": "npx",
+      "args": ["-y", "@azure/mcp@latest", "server", "start"],
+      "tools": ["*"],
+      "env": {
+        "AZURE_CLIENT_ID": "$COPILOT_MCP_AZURE_CLIENT_ID",
+        "AZURE_CLIENT_SECRET": "$COPILOT_MCP_AZURE_CLIENT_SECRET",
+        "AZURE_TENANT_ID": "$COPILOT_MCP_AZURE_TENANT_ID",
+        "AZURE_SUBSCRIPTION_ID": "$COPILOT_MCP_AZURE_SUBSCRIPTION_ID"
+      }
+    },
+    "playwright": {
+      "type": "local",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "tools": ["*"]
+    }
+  }
+}
+```
+
+### 8. Local MCP Config (`.vscode/mcp.json`)
+
+This is already checked in. It connects your local VS Code session to GitHub MCP, Azure MCP, and Playwright MCP. When you open the repo in VS Code Insiders, you'll be prompted for your GitHub Personal Access Token (needs `repo`, `workflow`, `read:org` scopes):
 
 ```json
 {
@@ -155,94 +242,23 @@ The Copilot Agent (cloud-side) uses a separate MCP config in **repo Settings →
 }
 ```
 
-> **Important:** Pull the latest GitHub MCP Docker image before use or the `actions` toolset will be missing:
-> ```bash
-> docker pull ghcr.io/github/github-mcp-server:latest
-> ```
+---
+
+## 🚀 End-to-End Walkthrough
+
+This section covers exactly what to do and what to say to each agent, from the first prompt to a live deployed API.
+
+> **How to switch agents:** In VS Code Insiders, open the Copilot Chat panel, click the agent selector at the top, and choose the agent by name. Each agent is a separate `.agent.md` file in `.github/agents/`.
 
 ---
 
-## ☁️ Azure Infrastructure
+### Step 1 — Product Orchestrator
 
-The IAC Engineer provisions the following resources via Terraform:
+**Switch to:** `product-orchestrator.agent.md`
 
-| Resource | Type |
-|----------|------|
-| Resource Group | `azurerm_resource_group` |
-| App Service Plan | `azurerm_service_plan` (Linux B1) |
-| Linux Web App | `azurerm_linux_web_app` (Node 20 LTS) |
+**What it does:** Reads your stakeholder request, writes a plan, creates one GitHub Issue per agent task, and tells you to proceed agent by agent.
 
-**Terraform remote backend:** Azure Storage Account (`satfbackenddemo`, container `tfstate`, key `task-mgmt-api.tfstate`)
-
-After `terraform apply`, the `AZURE_WEBAPP_NAME` GitHub secret is set automatically from the `web_app_name` Terraform output. No manual step needed.
-
----
-
-## 🔑 Secrets Configuration
-
-### GitHub Actions Secrets (repo level)
-
-Set these once before the first run:
-
-```bash
-gh secret set AZURE_CLIENT_ID     --body "<value>"
-gh secret set AZURE_CLIENT_SECRET --body "<value>"
-gh secret set AZURE_TENANT_ID     --body "<value>"
-gh secret set AZURE_SUBSCRIPTION_ID --body "<value>"
-# AZURE_WEBAPP_NAME is set automatically by terraform-apply.yml
-```
-
-### Copilot Agent Secrets (environment: copilot)
-
-Required for the cloud-side Copilot Agent to access Azure via MCP:
-
-```bash
-gh secret set COPILOT_MCP_AZURE_CLIENT_ID       --env copilot --body "<value>"
-gh secret set COPILOT_MCP_AZURE_CLIENT_SECRET   --env copilot --body "<value>"
-gh secret set COPILOT_MCP_AZURE_TENANT_ID       --env copilot --body "<value>"
-gh secret set COPILOT_MCP_AZURE_SUBSCRIPTION_ID --env copilot --body "<value>"
-```
-
-> All GitHub Actions jobs use `environment: copilot` — secrets are scoped to this environment.
-
----
-
-## ⚙️ CI/CD Pipelines
-
-Three workflows are generated by the CICD Engineer Agent and live in `.github/workflows/`:
-
-### `terraform-plan.yml`
-- **Trigger:** Pull request touching `infra/**`
-- **What it does:** Authenticates to Azure, initializes Terraform with remote backend, validates, and runs `terraform plan -no-color`
-- **Key config:** `environment: copilot`, `defaults.run.working-directory: infra`, `-backend-config` flags
-
-### `terraform-apply.yml`
-- **Trigger:** Push to main branch touching `infra/**` (PR merge)
-- **What it does:** Runs `terraform apply -auto-approve`, then automatically sets `AZURE_WEBAPP_NAME` secret via `gh secret set`
-- **Key config:** `terraform_wrapper: false` (required for `terraform output -raw`)
-
-### `deploy-app.yml`
-- **Trigger:** `workflow_dispatch` (triggered by Release Manager) or push to main touching `app/**`
-- **What it does:** Installs Node.js 20, runs `npm ci`, deploys to Azure Web App, runs health check
-- **Key config:** `environment: copilot`, `azure/webapps-deploy@v3`
-
----
-
-## 🚀 Running the Demo
-
-### Prerequisites
-
-- VS Code Insiders with GitHub Copilot extension
-- Docker running (for GitHub MCP server)
-- Azure Service Principal with Contributor role
-- All secrets configured (see above)
-- Terraform backend storage account created
-
-### Step-by-Step
-
-**1. Start with Product Orchestrator**
-
-Switch to `product-orchestrator.agent.md` in Copilot Agent Mode and send:
+**Send this prompt:**
 
 ```
 We just received a stakeholder request.
@@ -251,36 +267,182 @@ The API must support creating, listing, updating, and deleting tasks.
 Base branch: main
 ```
 
-The Orchestrator will output its understanding + action plan, then create GitHub Issues for each agent.
+**What to expect:**
 
-**2. Switch to Software Developer**
+1. The Orchestrator outputs a `## 🧠 My Understanding` block and `## 📋 Action Plan` — read it and confirm it matches your intent
+2. It creates 5 GitHub Issues (one PLAN issue + one per agent) with labels like `agent:software-developer`, `agent:cicd-engineer`, etc.
+3. It outputs a summary table with clickable links to each issue
+4. It hands off to Software Developer
 
-Switch to `software-developer.agent.md`. It will read its GitHub Issue, plan the files, and build the Node.js app under `app/`. Review and approve the PR.
+**You do nothing else** — just read the plan and let it create the issues. Move to Step 2.
 
-**3. Switch to CICD Engineer**
+---
 
-Switch to `cicd-engineer.agent.md`. It will create all 3 workflow files under `.github/workflows/`. Review and approve the PR.
+### Step 2 — Software Developer
 
-**4. Switch to IAC Engineer**
+**Switch to:** `software-developer.agent.md`
 
-Switch to `iac-engineer.agent.md`. It will ask you to confirm:
-- `app_name` (e.g. `copilot-agents-demo`)
-- `location` (e.g. `canadacentral`)
-- `environment` (e.g. `dev`)
+**What it does:** Reads its GitHub Issue, plans the Node.js app files, builds the full Express API, and opens a PR.
 
-Reply with your values. It writes Terraform and opens a PR. The `terraform-plan.yml` workflow runs automatically. Review the plan output in the PR, then approve and merge. `terraform-apply.yml` runs and provisions Azure. `AZURE_WEBAPP_NAME` is set automatically.
+**Send this prompt:**
 
-**5. Switch to Release Manager**
+```
+Please work on your assigned GitHub Issue and build the Task Management REST API.
+```
 
-Switch to `release-manager.agent.md`. It will:
-1. Verify prerequisites
-2. Trigger `deploy-app.yml` via `workflow_dispatch`
-3. Monitor the pipeline
-4. Run 7 smoke tests against the live URL using Playwright
-5. Post a release report on the GitHub Issue
-6. Close all agent-task issues
+**What to expect:**
 
-**Live URL:** `https://<app_name>-<environment>.azurewebsites.net`
+1. The agent reads its GitHub Issue
+2. It outputs a `## 🧠 My Understanding` + `## 📋 Action Plan` + `## 📁 Files I Will Create` block
+3. It creates branch `feature/app-task-api` from `main`
+4. It pushes all app files (`app/index.js`, `app/routes/tasks.js`, `app/package.json`, `app/package-lock.json`)
+5. It opens a PR titled `feat: build Task Management REST API (Software Developer Agent)` with `Closes #<issue>`
+6. It outputs a summary with a clickable PR link
+
+**You do:**
+
+- Click the PR link and review the code briefly
+- Enable auto-merge on the PR (Settings → Allow auto-merge, then click "Enable auto-merge" on the PR)
+- Approve and merge the PR
+- Move to Step 3
+
+---
+
+### Step 3 — CICD Engineer
+
+**Switch to:** `cicd-engineer.agent.md`
+
+**What it does:** Reads its GitHub Issue, writes all 3 GitHub Actions workflow files, and opens a PR.
+
+**Send this prompt:**
+
+```
+Please work on your assigned GitHub Issue and create the CI/CD pipelines.
+```
+
+**What to expect:**
+
+1. The agent reads its GitHub Issue and examines the repo structure
+2. It outputs its `## 🧠 My Understanding` and `## 📋 Action Plan`
+3. It creates branch `feature/cicd-pipelines` from `main`
+4. It pushes 3 workflow files to `.github/workflows/`:
+   - `terraform-plan.yml` — triggers on PRs touching `infra/**`
+   - `terraform-apply.yml` — triggers on merge to `main` touching `infra/**`
+   - `deploy-app.yml` — triggered via `workflow_dispatch` or push to `main` touching `app/**`
+5. It opens a PR titled `ci: add Terraform and app deploy pipelines (CICD Engineer Agent)`
+
+**You do:**
+
+- Review the workflows — verify they use `environment: copilot` on every job
+- Approve and merge the PR
+- Move to Step 4
+
+> **If the agent generates broken workflows** (wrong branch, missing `environment: copilot`, wrong `terraform init`), use the backup workflows in `.github/workflow-backups/` and copy them into `.github/workflows/` manually:
+> ```bash
+> cp .github/workflow-backups/terraform-plan.yml .github/workflows/terraform-plan.yml
+> git add .github/workflows/ && git commit -m "fix: restore working workflow" && git push
+> ```
+
+---
+
+### Step 4 — IAC Engineer
+
+**Switch to:** `iac-engineer.agent.md`
+
+**What it does:** Reads its issue, asks you to confirm the Azure resource config, writes Terraform, and opens a PR. The `terraform-plan.yml` workflow runs automatically on the PR.
+
+**Send this prompt:**
+
+```
+Please work on your assigned GitHub Issue and provision the Azure infrastructure.
+```
+
+**What to expect:**
+
+1. The agent outputs its plan and then **asks you to confirm your resource config**. It will ask for:
+   - `app_name` — base name for all Azure resources (e.g. `copilot-agents-demo`)
+   - `location` — Azure region (e.g. `canadacentral`)
+   - `environment` — deployment environment tag (e.g. `dev`)
+
+**Reply with your values:**
+
+```
+app_name: copilot-agents-demo
+location: canadacentral
+environment: dev
+```
+
+3. The agent writes 4 Terraform files to `infra/` and opens a PR titled `infra: provision Azure Web App (IAC Engineer Agent)`
+4. The `terraform-plan.yml` workflow runs automatically on the PR — wait for it to complete
+5. The agent posts the plan output as a PR comment
+
+**You do:**
+
+- Check the PR — confirm the `terraform plan` output shows the expected resources (Resource Group, App Service Plan, Linux Web App)
+- Approve and merge the PR
+- **Wait** for `terraform-apply.yml` to run automatically on merge (watch Actions tab)
+- After apply succeeds, `AZURE_WEBAPP_NAME` is set automatically as a GitHub secret — you can verify under repo Settings → Secrets
+- Move to Step 5
+
+> **Azure resources provisioned:**
+> - `<app_name>-<environment>-rg` — Resource Group
+> - `<app_name>-<environment>-asp` — App Service Plan (Linux B1)
+> - `<app_name>-<environment>` — Linux Web App (Node 20 LTS)
+>
+> **Live URL will be:** `https://<app_name>-<environment>.azurewebsites.net`
+
+---
+
+### Step 5 — Release Manager
+
+**Switch to:** `release-manager.agent.md`
+
+**What it does:** Verifies prerequisites, triggers the deploy workflow, monitors it, runs 7 smoke tests against the live URL using Playwright, posts a release report, and closes all open agent issues.
+
+**Send this prompt:**
+
+```
+Please validate and deploy the release. All agent PRs have been merged into main.
+```
+
+**What to expect:**
+
+1. The agent outputs its `## 🧠 My Understanding`, `## 📋 Action Plan`, and `## ✅ Pre-Release Checklist`
+2. It verifies: all PRs merged, `deploy-app.yml` exists, `AZURE_WEBAPP_NAME` secret is configured, `/health` endpoint exists
+3. It triggers `deploy-app.yml` via `workflow_dispatch` using the GitHub MCP `actions_run_trigger` tool
+4. It monitors the workflow run until completion
+5. It uses **Playwright MCP** to navigate the live URL and run 7 smoke tests
+6. It posts a structured release report as a comment on its GitHub Issue
+7. It closes all open `agent-task` labeled issues and labels them `released`
+
+**Release report format:**
+
+```markdown
+## 🚀 Release Report
+
+**Status:** ✅ SUCCESS
+**Live URL:** https://<app_name>-<environment>.azurewebsites.net
+**Pipeline run:** [View workflow run](...)
+
+### Validation Results
+
+| Test          | Endpoint           | Result | HTTP |
+|---------------|--------------------|--------|------|
+| Health check  | GET /health        | ✅     | 200  |
+| Create task   | POST /tasks        | ✅     | 201  |
+| List tasks    | GET /tasks         | ✅     | 200  |
+| Get task      | GET /tasks/:id     | ✅     | 200  |
+| Update task   | PUT /tasks/:id     | ✅     | 200  |
+| Delete task   | DELETE /tasks/:id  | ✅     | 204  |
+| 404 handling  | GET /tasks/:id     | ✅     | 404  |
+```
+
+**You do:** Nothing — just watch the report come in. 🎉
+
+> **Tool usage rules for the Release Manager:**
+> - Use **GitHub MCP** (`actions_run_trigger`, `actions_get`, `actions_list`) for everything pipeline-related
+> - Use **Playwright MCP** (`playwright/navigate`, `playwright/evaluate`) only for live URL smoke tests
+> - Never use Playwright to check pipeline status
 
 ---
 
@@ -290,9 +452,9 @@ The Release Manager runs 7 checks against the live URL:
 
 | Test | Endpoint | Expected |
 |------|----------|----------|
-| Health check | `GET /health` | HTTP 200 |
-| Create task | `POST /tasks` | HTTP 201 |
-| List tasks | `GET /tasks` | HTTP 200 |
+| Health check | `GET /health` | HTTP 200, `{ "status": "ok" }` |
+| Create task | `POST /tasks` with `{ "title": "smoke test" }` | HTTP 201 |
+| List tasks | `GET /tasks` | HTTP 200, returns array |
 | Get task | `GET /tasks/:id` | HTTP 200 |
 | Update task | `PUT /tasks/:id` | HTTP 200 |
 | Delete task | `DELETE /tasks/:id` | HTTP 204 |
@@ -300,24 +462,69 @@ The Release Manager runs 7 checks against the live URL:
 
 ---
 
-## 🔄 Resetting for a Fresh Run
+## ☁️ Azure Infrastructure
 
-To run the demo again from scratch:
+The IAC Engineer provisions these resources:
+
+| Resource | Terraform Type | Name Pattern |
+|----------|---------------|--------------|
+| Resource Group | `azurerm_resource_group` | `<app_name>-<environment>-rg` |
+| App Service Plan | `azurerm_service_plan` (Linux B1) | `<app_name>-<environment>-asp` |
+| Linux Web App | `azurerm_linux_web_app` (Node 20 LTS) | `<app_name>-<environment>` |
+
+**Terraform remote backend:** Azure Storage Account `satfbackenddemo`, container `tfstate`, key `task-mgmt-api.tfstate`
+
+After `terraform apply` completes, the `AZURE_WEBAPP_NAME` GitHub secret is set automatically via:
 
 ```bash
-# Delete Azure resources
+WEBAPP_NAME=$(terraform output -raw web_app_name)
+gh secret set AZURE_WEBAPP_NAME --body "$WEBAPP_NAME" --repo ${{ github.repository }}
+```
+
+---
+
+## ⚙️ CI/CD Pipelines
+
+Three workflows live in `.github/workflows/`:
+
+### `terraform-plan.yml`
+- **Trigger:** Pull request touching `infra/**` targeting `main`
+- **What it does:** Azure login, `terraform init` with `-backend-config` flags, `terraform validate`, `terraform plan -no-color`
+- **Key requirements:** `environment: copilot`, `defaults.run.working-directory: infra`, `-backend-config` flags on init
+
+### `terraform-apply.yml`
+- **Trigger:** Push to `main` touching `infra/**` (i.e. a PR merge)
+- **What it does:** `terraform apply -auto-approve -no-color`, then sets `AZURE_WEBAPP_NAME` secret automatically
+- **Key requirements:** `terraform_wrapper: false` (required for `terraform output -raw` to work)
+
+### `deploy-app.yml`
+- **Trigger:** `workflow_dispatch` (triggered by Release Manager) or push to `main` touching `app/**`
+- **What it does:** `npm ci`, deploys to Azure Web App via `azure/webapps-deploy@v3`, runs health check
+- **Key requirements:** `environment: copilot`, `AZURE_WEBAPP_NAME` secret must exist before this runs
+
+---
+
+## 🔄 Resetting for a Fresh Run
+
+To wipe everything and run again from scratch:
+
+```bash
+# 1. Delete Azure resources
 az group delete --name <app_name>-<environment>-rg --yes --no-wait
 
-# Clear Terraform state
+# 2. Clear Terraform remote state
 az storage blob delete \
   --account-name satfbackenddemo \
   --container-name tfstate \
   --name task-mgmt-api.tfstate
 
-# Clear the auto-set secret
+# 3. Clear the auto-set secret
 gh secret delete AZURE_WEBAPP_NAME
 
-# Delete merged feature branches (optional)
+# 4. Close any leftover open issues
+gh issue list --label agent-task --json number -q '.[].number' | xargs -I{} gh issue close {}
+
+# 5. Delete merged feature branches (optional)
 git push origin --delete feature/app-task-api
 git push origin --delete feature/cicd-pipelines
 git push origin --delete feature/infra-azure-webapp
@@ -325,33 +532,36 @@ git push origin --delete feature/infra-azure-webapp
 
 ---
 
-## 🤔 Design Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| **Sequential execution** | Each agent depends on the previous one's output. Parallel would cause race conditions. |
-| **Phase 0 think-first** | Agents output understanding + action plan before acting. Catches misinterpretations early. |
-| **Skills as exact templates** | Agents copy proven, battle-tested code instead of generating variations that break. |
-| **IAC Engineer asks for config** | Resource names and regions are stakeholder decisions, not defaults. Captures intent before writing any code. |
-| **`environment: copilot` on all jobs** | GitHub Actions secrets are scoped to this environment. Jobs silently fail without it. |
-| **`-backend-config` flags on terraform init** | Prevents agents from writing inline backend blocks that conflict with the pre-configured remote state. |
-| **`terraform_wrapper: false`** | Required for `terraform output -raw` to work correctly in the apply workflow. |
-| **`AZURE_WEBAPP_NAME` set automatically** | Eliminates manual handoff between infra and deploy steps. Reduces demo friction. |
-| **Manual agent switching** | Better demo narrative. Each switch is a deliberate handoff, visible to the audience. |
-
----
-
 ## 🛠️ Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| GitHub MCP tools missing `actions` toolset | `docker pull ghcr.io/github/github-mcp-server:latest` |
-| Azure login fails in workflows | Verify secrets use `creds` JSON format, not OIDC fields |
-| `terraform output -raw` fails | Confirm `terraform_wrapper: false` is set in setup-terraform |
-| Workflow doesn't trigger on PR | Confirm `environment: copilot` is on the job and secrets are scoped to it |
-| `npm ci` fails | Confirm `package-lock.json` exists in `app/` |
-| Smoke tests fail | Check `GET /health` returns `{ "status": "ok" }` with HTTP 200 |
-| Issues stay open after release | Release Manager closes all `agent-task` labeled issues on success |
+| GitHub MCP missing `actions` toolset | `docker pull ghcr.io/github/github-mcp-server:latest` and restart MCP |
+| Azure login fails in workflows | Verify all 4 secrets are set and use the `creds` JSON string format — never OIDC separate fields |
+| `terraform output -raw` fails | Confirm `terraform_wrapper: false` is set in `hashicorp/setup-terraform@v3` |
+| `terraform plan` fails on init | Confirm `-backend-config` flags match your storage account name, container, and key exactly |
+| Workflow doesn't trigger on PR | Confirm `environment: copilot` is on the job — not just at the workflow level |
+| `npm ci` fails — no lockfile | Confirm `package-lock.json` exists in `app/` (Software Developer must commit it) |
+| Smoke tests fail | Confirm `GET /health` returns `{ "status": "ok" }` with HTTP 200 and the app has fully started |
+| Release Manager uses Playwright for pipeline status | This is a known agent tendency — the tool usage rules in `release-manager.agent.md` fix it |
+| Issues stay open after release | Release Manager searches for and closes all `agent-task` labeled issues on success |
+| CICD agent generates broken workflows | Use backups in `.github/workflow-backups/` — see Step 3 note above |
+
+---
+
+## 🤔 Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Sequential execution** | Each agent depends on the previous one's output. Parallel would cause race conditions (e.g. CICD needs app to exist, IAC needs workflows to exist). |
+| **Phase 0 think-first** | Every agent outputs understanding + action plan before acting. Lets you catch misinterpretations before any code is written. |
+| **Skills as exact templates** | Agents copy proven, battle-tested code instead of generating variations that break. The `github-actions-pipeline` skill has the working workflow templates verbatim. |
+| **IAC Engineer asks for config** | Resource names and regions are stakeholder decisions, not defaults. Asking upfront prevents misnamed Azure resources that are expensive to rename. |
+| **`environment: copilot` on all jobs** | GitHub Actions secrets are scoped to this environment. Jobs silently fail without it — the most common source of mystery failures. |
+| **`-backend-config` flags on terraform init** | Prevents agents from writing inline backend blocks that conflict with the pre-configured remote state. |
+| **`terraform_wrapper: false`** | Required for `terraform output -raw` to return a clean string. Without it the wrapper adds extra output that breaks the `gh secret set` command. |
+| **`AZURE_WEBAPP_NAME` auto-set** | Eliminates the manual handoff between infra and deploy steps. The apply workflow extracts the output and sets the secret in one step. |
+| **Manual agent switching** | Makes the handoff model explicit and visible. Each switch is a deliberate decision, which is better for demos and also forces review at each stage. |
 
 ---
 
@@ -360,8 +570,21 @@ git push origin --delete feature/infra-azure-webapp
 | Layer | Technology |
 |-------|-----------|
 | AI Agents | GitHub Copilot Agent Mode (VS Code Insiders) |
+| MCP Tools | GitHub MCP Server, Azure MCP Server, Playwright MCP |
 | App | Node.js 20, Express 4 |
-| Infrastructure | Terraform, Azure Web App (Linux B1) |
+| Infrastructure | Terraform (AzureRM ~3.0), Azure Web App (Linux B1) |
 | CI/CD | GitHub Actions |
-| MCP | GitHub MCP, Azure MCP, Playwright MCP |
 | Cloud | Microsoft Azure (Canada Central) |
+
+---
+
+## 🔗 Helpful Links
+
+| Resource | Description |
+|----------|-------------|
+| [agents.md](https://agents.md/) | Community hub for agent specifications and patterns |
+| [About Custom Agents](https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-custom-agents) | GitHub Docs — concepts behind custom Copilot agents |
+| [Create Custom Agents](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents) | GitHub Docs — step-by-step guide to building your own agents |
+| [Extend Coding Agent with MCP](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/extend-coding-agent-with-mcp) | GitHub Docs — how to connect MCP servers to your agent |
+| [Add Repository Instructions](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions) | GitHub Docs — configure repo-level Copilot instructions |
+| [About Agent Skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) | GitHub Docs — concepts behind agent skills |
