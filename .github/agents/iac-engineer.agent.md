@@ -66,7 +66,7 @@ Only proceed to Phase 1 after outputting this plan.
 ### Phase 1: Build
 
 1. Follow the #terraform-azure-webapp skill exactly — use the provided file templates
-2. Commit all `.tf` files to branch `feature/infra-azure-webapp` from `dev` under `infra/`
+2. Commit all `.tf` files to branch `feature/infra-azure-webapp` from `demo-test` under `infra/`
 3. Open a Pull Request using the PR format below
 4. Request reviewer `hkaanturgut` on the PR
 5. Enable auto-merge (squash) on the PR

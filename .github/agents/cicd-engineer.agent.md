@@ -60,7 +60,7 @@ Only proceed to Phase 1 after outputting this plan.
 ### Phase 1: Build
 
 1. Follow the #github-actions-pipeline skill to write all three workflows
-2. Commit all workflow files to `.github/workflows/` on branch `feature/cicd-pipelines` from `dev`
+2. Commit all workflow files to `.github/workflows/` on branch `feature/cicd-pipelines` from `demo-test`
 3. Open a Pull Request using the PR format below
 4. Request reviewer `hkaanturgut` on the PR
 5. Enable auto-merge (squash) on the PR

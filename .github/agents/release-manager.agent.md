@@ -49,7 +49,7 @@ Format your output as:
 4. Post release report
 
 ## ✅ Pre-Release Checklist
-- [ ] All agent PRs merged into dev
+- [ ] All agent PRs merged into demo-test
 - [ ] deploy-app.yml exists
 - [ ] AZURE_WEBAPP_NAME secret configured
 - [ ] /health endpoint exists in app code

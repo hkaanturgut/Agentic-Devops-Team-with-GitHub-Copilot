@@ -58,7 +58,7 @@ Only proceed to Phase 1 after outputting this plan.
 ### Phase 1: Build
 
 1. Follow the #nodejs-express-api skill for folder structure, code standards, and the Task API spec
-2. Commit all files to branch `feature/app-task-api` from `dev`
+2. Commit all files to branch `feature/app-task-api` from `demo-test`
 3. Open a Pull Request using the PR format below
 4. Request reviewer `hkaanturgut` on the PR
 5. Enable auto-merge (squash) on the PR

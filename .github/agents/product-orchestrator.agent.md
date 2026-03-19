@@ -112,7 +112,7 @@ Each issue must include:
 [What this agent must produce for the next agent]
 
 ## Branch
-`feature/<type>-<short-name>` from `dev`
+`feature/<type>-<short-name>` from `demo-test`
 
 ## Skill Reference
 `#<skill-name>`
@@ -156,6 +156,6 @@ After creating issues, always output a summary table with hyperlinks:
 ## Rules
 
 - Never invoke two agents at the same time
-- Always branch from `dev` — never commit directly to `dev`
+- Always branch from `demo-test` — never commit directly to `dev`
 - Always open a PR with reviewer request and auto-merge enabled — never merge directly
 - If the request is vague, make reasonable technical assumptions and document them
