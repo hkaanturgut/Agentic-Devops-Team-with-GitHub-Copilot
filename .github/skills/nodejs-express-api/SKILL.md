@@ -124,6 +124,34 @@ Response (201):
 }
 ```
 
+## package-lock.json
+
+Always create this file directly using push_files — never run npm install.
+Use this exact minimal content:
+```json
+{
+  "name": "task-management-api",
+  "version": "1.0.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "task-management-api",
+      "version": "1.0.0",
+      "dependencies": {
+        "express": "^4.18.0",
+        "uuid": "^9.0.0"
+      },
+      "devDependencies": {
+        "jest": "^29.0.0",
+        "nodemon": "^3.0.0",
+        "supertest": "^6.3.0"
+      }
+    }
+  }
+}
+```
+
 ## Critical
 Always commit `package-lock.json` — run `npm install` locally 
 before pushing. CI uses `npm ci` which requires the lockfile.

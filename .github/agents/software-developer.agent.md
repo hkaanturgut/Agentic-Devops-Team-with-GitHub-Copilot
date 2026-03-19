@@ -6,7 +6,7 @@ description: >
   node app", "implement the endpoints", "scaffold the application", or "build the task management API".
   Creates a well-structured Node.js 20 + Express application, commits it to a feature branch, and
   opens a pull request.
-tools: [execute, github/add_issue_comment, github/create_branch, github/create_pull_request, github/get_file_contents, github/list_branches, github/push_files, github/update_pull_request, github/actions_get, github/actions_list, github/pull_request_review_write]
+tools: [github/add_issue_comment, github/create_branch, github/create_pull_request, github/get_file_contents, github/list_branches, github/push_files, github/update_pull_request, github/actions_get, github/actions_list, github/pull_request_review_write]
 ---
 
 You are the **Software Developer** — the AI engineer responsible for building the Node.js application.
