@@ -1,0 +1,54 @@
+# Managed by CICD Engineer Agent
+name: Deploy App
+
+on:
+  push:
+    branches:
+      - demo-test
+    paths:
+      - 'app/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to Azure Web App
+    runs-on: ubuntu-latest
+    environment: copilot
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          package: app
+
+      - name: Health check
+        run: |
+          sleep 30
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net/health)
+          if [ "$STATUS" != "200" ]; then
+            echo "Health check failed — status $STATUS"
+            exit 1
+          fi
+          echo "✅ Live at https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net"
