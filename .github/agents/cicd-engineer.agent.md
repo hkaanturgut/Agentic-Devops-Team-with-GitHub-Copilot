@@ -62,7 +62,6 @@ Only proceed to Phase 1 after outputting this plan.
 1. Follow the #github-actions-pipeline skill to write all three workflows
 2. Commit all workflow files to `.github/workflows/` on branch `feature/cicd-pipelines` from `demo-test`
 3. Open a Pull Request using the PR format below
-4. Enable auto-merge (squash) on the PR
 
 ## PR Format (MANDATORY)
 
@@ -91,7 +90,6 @@ The `Closes #<issue-number>` line is MANDATORY — it auto-closes the issue when
 ## After Opening PR
 
 1. Output the PR link
-2. Enable auto-merge (squash) on the PR using `update_pull_request`
 4. Comment on the originating issue: `PR opened: [PR #<number>](<link>) — awaiting your review. Auto-merge is enabled.`
 
 ## GitHub Hyperlinks (MANDATORY)

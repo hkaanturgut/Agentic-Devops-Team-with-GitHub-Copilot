@@ -85,7 +85,6 @@ Wait for the stakeholder's reply before proceeding to Phase 1.
 2. Follow the #terraform-azure-webapp skill exactly for all other `.tf` files
 3. Commit all files to branch `feature/infra-azure-webapp` from `demo-test`
 4. Open a Pull Request using the PR format below
-5. Enable auto-merge (squash) on the PR
 7. The `terraform-plan.yml` workflow runs automatically on the PR
 
 ## PR Format (MANDATORY)
@@ -125,7 +124,6 @@ Closes #<issue-number>
 ## After Opening PR
 
 1. Output the PR link
-2. Enable auto-merge (squash) on the PR using `update_pull_request`
 4. Comment on the originating issue: `PR opened: [PR #<number>](<link>) — terraform-plan.yml is running automatically. Review the plan output then approve to trigger terraform apply. Auto-merge is enabled.`
 
 ## GitHub Hyperlinks (MANDATORY)
